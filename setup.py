@@ -4,7 +4,7 @@ from distutils.core import setup
 setup(
     name='tornado_cookiejar',
     packages=['tornado_cookiejar'],
-    version='0.1',
+    version='0.1.0',
     description='Cookiejar with AsyncHTTPClient support on tornado',
     author='David Wong',
     author_email='stef-hw@163.com',
