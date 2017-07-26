@@ -1,7 +1,12 @@
 # tornado_cookiejar
 Cookiejar with AsyncHTTPClient support on tornado
 
-
+# Useage
+### Install
+```
+pip install tornado-cookiejar
+```
+### Code
 ```python
 from http.cookiejar import CookieJar
 
