@@ -1,4 +1,5 @@
 from .simple_client import SimpleCookieJarClient
-from .cookie import CookioJarRequest
+from .cookie import CookieJarRequest
 
-__all__ = ['SimpleCookieJarClient', 'CookioJarRequest']
+
+__all__ = ['SimpleCookieJarClient', 'CookieJarRequest']
