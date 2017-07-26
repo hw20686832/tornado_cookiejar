@@ -1,0 +1,109 @@
+# coding:utf-8
+import time
+try:
+    from Cookie import SimpleCookie
+except:
+    from http.cookies import SimpleCookie
+try:
+    from cookielib import Cookie
+except:
+    from http.cookiejar import Cookie
+
+from tornado.concurrent import TracebackFuture
+from tornado import httputil, stack_context
+from tornado.simple_httpclient import SimpleAsyncHTTPClient
+from tornado.httpclient import (HTTPRequest, HTTPResponse,
+                                HTTPError, _RequestProxy)
+
+
+def cookiejar_from_simplecookie(cookie, cookiejar):
+    for c in cookie.values():
+        expires = c['expires']
+        expires_time = None
+        if expires:
+            try:
+                expires_time = time.strptime(expires,
+                                             '%a, %d-%b-%y %H:%M:%S %Z')
+                expires_time = time.mktime(expires_time)
+            except:
+                pass
+
+        ck = Cookie(
+            c['version'] or None,
+            c.key, c.value, None, None,
+            c['domain'], None, None,
+            c['path'], None, c['secure'] or None,
+            expires_time, None, c['comment'] or None,
+            None, {}
+        )
+        cookiejar.set_cookie(ck)
+
+    return cookiejar
+
+
+def parse_cookiejar(cookiejar):
+    if cookiejar:
+        return '; '.join("%s=%s" % (c.name, c.value) for c in cookiejar)
+
+
+class CookieJarRequest(HTTPRequest):
+    def __init__(self, url, cookie=None, **kwargs):
+        self.cookie = cookie
+        super(CookieJarRequest, self).__init__(url, **kwargs)
+
+
+class SimpleCookieJarClient(SimpleAsyncHTTPClient):
+    def fetch(self, request, callback=None, raise_error=True, **kwargs):
+        if self._closed:
+            raise RuntimeError("fetch() called on closed AsyncHTTPClient")
+        if not isinstance(request, HTTPRequest):
+            request = CookieJarRequest(
+                url=request,
+                cookie=kwargs.pop('cookie'),
+                **kwargs
+            )
+        else:
+            if kwargs:
+                raise ValueError("kwargs can't be used if request is an HTTPRequest object")
+        # We may modify this (to add Host, Accept-Encoding, etc),
+        # so make sure we don't modify the caller's object.  This is also
+        # where normal dicts get converted to HTTPHeaders objects.
+        _headers = httputil.HTTPHeaders(request.headers)
+        cookiejar = request.cookie
+        cookie_str = parse_cookiejar(cookiejar)
+        if cookie_str:
+            _headers['Cookie'] = parse_cookiejar(request.cookie)
+        request.headers = _headers
+        request = _RequestProxy(request, self.defaults)
+        future = TracebackFuture()
+        if callback is not None:
+            callback = stack_context.wrap(callback)
+
+            def handle_future(future):
+                exc = future.exception()
+                if isinstance(exc, HTTPError) and exc.response is not None:
+                    response = exc.response
+                elif exc is not None:
+                    response = HTTPResponse(
+                        request, 599, error=exc,
+                        request_time=time.time() - request.start_time)
+                else:
+                    response = future.result()
+                self.io_loop.add_callback(callback, response)
+            future.add_done_callback(handle_future)
+
+        def handle_response(response):
+            if raise_error and response.error:
+                future.set_exception(response.error)
+            else:
+                if cookiejar is not None:
+                    cookies = response.headers.get_list("Set-Cookie")
+                    sc = SimpleCookie()
+                    for c in cookies:
+                        sc.load(c)
+                    cookiejar.clear()
+                    _cookiejar = cookiejar_from_simplecookie(sc, cookiejar)
+                    response.cookie = _cookiejar
+                future.set_result(response)
+        self.fetch_impl(request, handle_response)
+        return future
