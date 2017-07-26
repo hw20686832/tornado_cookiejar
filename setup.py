@@ -3,7 +3,7 @@ from distutils.core import setup
 
 setup(
     name='tornado_cookiejar',
-    packages=[],
+    packages=['tornado_cookiejar'],
     version='0.1',
     description='Cookiejar with AsyncHTTPClient support on tornado',
     author='David Wong',
