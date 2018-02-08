@@ -35,7 +35,7 @@ class SimpleCookieJarClient(SimpleAsyncHTTPClient):
         cookiejar = request.cookie
         cookie_str = parse_cookiejar(cookiejar)
         if cookie_str:
-            _headers['Cookie'] = parse_cookiejar(request.cookie)
+            _headers['Cookie'] = cookie_str
         request.headers = _headers
         request = _RequestProxy(request, self.defaults)
         future = TracebackFuture()
