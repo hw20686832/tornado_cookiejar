@@ -15,9 +15,9 @@ def cookiejar_from_simplecookie(cookie, cookiejar):
             try:
                 expires_time = time.strptime(expires,
                                              '%a, %d-%b-%y %H:%M:%S %Z')
-                expires_time = time.mktime(expires_time)
             except:
-                pass
+                # For Python Cookies bug.
+                expires_time = time.mktime(expires_time)
 
         ck = Cookie(
             c['version'] or None,
