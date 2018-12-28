@@ -22,7 +22,7 @@ class SimpleCookieJarClient(SimpleAsyncHTTPClient):
         if not isinstance(request, HTTPRequest):
             request = CookieJarRequest(
                 url=request,
-                cookie=kwargs.pop('cookie'),
+                cookie=kwargs.pop('cookie', None),
                 **kwargs
             )
         else:
