@@ -5,7 +5,7 @@ try:
 except:
     from http.cookies import SimpleCookie
 
-from tornado.concurrent import TracebackFuture
+from tornado.concurrent import Future
 from tornado import httputil, stack_context
 from tornado.simple_httpclient import SimpleAsyncHTTPClient
 from tornado.httpclient import (HTTPRequest, HTTPResponse,
@@ -38,7 +38,7 @@ class SimpleCookieJarClient(SimpleAsyncHTTPClient):
             _headers['Cookie'] = cookie_str
         request.headers = _headers
         request = _RequestProxy(request, self.defaults)
-        future = TracebackFuture()
+        future = Future()
         if callback is not None:
             callback = stack_context.wrap(callback)
 
